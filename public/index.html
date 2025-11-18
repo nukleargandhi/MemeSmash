@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MemeSmash - Vote Now!</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>MEMESMASH</h1>
+    </header>
+
+    <div class="nav-links">
+        <a href="/rankings.html">View Full Rankings</a>
+    </div>
+
+    <div class="page-content">
+        <!-- Main Content: Matchup -->
+        <div class="main-column">
+            <div class="container">
+                <h2>Which meme is better? Click to vote!</h2>
+                <div id="matchup-container">
+                    <div id="image-a-container" class="image-wrapper">
+                        <img id="image-a" src="" alt="Meme A">
+                        <p id="name-a">Loading...</p>
+                    </div>
+                    <span id="vs">VS</span>
+                    <div id="image-b-container" class="image-wrapper">
+                        <img id="image-b" src="" alt="Meme B">
+                        <p id="name-b">Loading...</p>
+                    </div>
+                </div>
+                <button id="new-matchup-btn" style="display: block; margin: auto;">Get New Matchup</button>
+            </div>
+        </div>
+
+        <!-- Sidebar: Upload Form -->
+        <aside class="sidebar-column">
+            <div class="container">
+                <h2>Upload a New Meme</h2>
+                <form id="upload-form">
+                    <div>
+                        <label for="meme-name">Meme Title:</label>
+                        <input type="text" id="meme-name" name="name" required placeholder="Enter a title for your meme">
+                    </div>
+                    <div>
+                        <label for="meme-image">Image File:</label>
+                        <input type="file" id="meme-image" name="image" accept="image/*" required>
+                    </div>
+                    <button type="submit">Upload Meme</button>
+                </form>
+                <p id="upload-status"></p>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // DOM Elements
+        const imageAContainer = document.getElementById('image-a-container');
+        const imageBContainer = document.getElementById('image-b-container');
+        const newMatchupBtn = document.getElementById('new-matchup-btn');
+        const uploadForm = document.getElementById('upload-form');
+        let currentMatchup = [];
+
+        async function fetchMatchup() {
+            try {
+                const response = await fetch('/api/matchup');
+                if (!response.ok) throw new Error('Could not fetch new matchup.');
+                const matchup = await response.json();
+                
+                currentMatchup = matchup;
+                
+                document.getElementById('image-a').src = matchup[0].image_url;
+                document.getElementById('name-a').textContent = matchup[0].name;
+                imageAContainer.dataset.id = matchup[0].id;
+
+                document.getElementById('image-b').src = matchup[1].image_url;
+                document.getElementById('name-b').textContent = matchup[1].name;
+                imageBContainer.dataset.id = matchup[1].id;
+            } catch (error) {
+                console.error('Error fetching matchup:', error);
+                document.getElementById('name-a').textContent = "Error";
+                document.getElementById('name-b').textContent = "Error";
+            }
+        }
+
+        async function handleVote(winnerId, loserId) {
+            try {
+                await fetch('/api/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ winnerId, loserId })
+                });
+                fetchMatchup(); // Get a new matchup immediately
+            } catch (error) {
+                console.error('Error submitting vote:', error);
+            }
+        }
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const uploadStatus = document.getElementById('upload-status');
+            const formData = new FormData(uploadForm);
+            uploadStatus.textContent = 'Uploading...';
+            uploadStatus.style.color = 'blue';
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Upload failed');
+                }
+                uploadStatus.textContent = 'Meme uploaded successfully!';
+                uploadStatus.style.color = 'green';
+                uploadForm.reset();
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                uploadStatus.textContent = `Error: ${error.message}`;
+                uploadStatus.style.color = 'red';
+            }
+        });
+
+        imageAContainer.addEventListener('click', () => {
+            if (currentMatchup.length === 2) handleVote(currentMatchup[0].id, currentMatchup[1].id);
+        });
+
+        imageBContainer.addEventListener('click', () => {
+             if (currentMatchup.length === 2) handleVote(currentMatchup[1].id, currentMatchup[0].id);
+        });
+
+        newMatchupBtn.addEventListener('click', fetchMatchup);
+
+        document.addEventListener('DOMContentLoaded', fetchMatchup);
+    </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MemeSmash - Top Rankings</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>MEMESMASH</h1>
+    </header>
+    
+    <div class="nav-links">
+        <a href="/">Back to Voting</a>
+    </div>
+
+    <div class="page-content" style="justify-content: center;">
+        <div class="main-column" style="max-width: 800px;">
+            <div class="container">
+                <h2>Top Memes</h2>
+                <ol id="rankings-list"></ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Modal -->
+    <div id="meme-modal" class="modal">
+        <span class="close-button">&times;</span>
+        <img class="modal-content" id="modal-image">
+    </div>
+
+    <script>
+        const rankingsList = document.getElementById('rankings-list');
+        const modal = document.getElementById('meme-modal');
+        const modalImage = document.getElementById('modal-image');
+        const closeButton = document.querySelector('.close-button');
+
+        async function fetchRankings() {
+            try {
+                const response = await fetch('/api/rankings');
+                if (!response.ok) throw new Error('Could not fetch rankings.');
+                const rankings = await response.json();
+
+                rankingsList.innerHTML = ''; // Clear current list
+                rankings.forEach((image, index) => {
+                    const listItem = document.createElement('li');
+                    // Store image data on the element itself for the modal
+                    listItem.dataset.imageUrl = image.image_url;
+                    listItem.dataset.imageName = image.name;
+
+                    listItem.innerHTML = `
+                        <span class="rank">${index + 1}</span>
+                        <div class="rank-details">
+                            <span class="rank-name">${image.name}</span>
+                            <span class="rank-rating">Rating: ${Math.round(image.rating)}</span>
+                        </div>
+                    `;
+                    rankingsList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error fetching rankings:', error);
+            }
+        }
+
+        // Event listener for clicking on a ranked item
+        rankingsList.addEventListener('click', (e) => {
+            const listItem = e.target.closest('li');
+            if (listItem && listItem.dataset.imageUrl) {
+                modalImage.src = listItem.dataset.imageUrl;
+                modalImage.alt = listItem.dataset.imageName;
+                modal.style.display = 'flex'; // Use flex to center content
+            }
+        });
+
+        // Functions to close the modal
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        closeButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            // Close if the user clicks on the dark background, but not the image itself
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Initial page load
+        document.addEventListener('DOMContentLoaded', fetchRankings);
+    </script>
+</body>
+</html>
