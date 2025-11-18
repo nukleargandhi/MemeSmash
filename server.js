@@ -186,12 +186,4 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
 // --- Serve Static Files ---
 app.use(express.static('public'));
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-    console.log('Database config:', {
-        host: process.env.DB_HOST,
-        database: process.env.DB_DATABASE,
-        user: process.env.DB_USER,
-        port: process.env.DB_PORT
-    });
-});
+module.exports = app;
